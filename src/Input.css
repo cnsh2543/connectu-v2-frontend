@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.checkbox-round {
+    width: 1.6em;
+  height: 1.6em;
+  background-color: white;
+  border-radius: 50%;
+  border: 2px solid #eb580a;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+
+}
+
+.checkbox-round:checked {
+    background-color: #eb580a;
+}
+
+.checkbox-round:not(:checked)::after {
+    display: none; /* Hide the checkmark when unchecked */
+  }
+
+.checkbox-round::after {
+    content: "\2713"; /* Unicode checkmark character */
+    font-size: 14px; /* Adjust size of the checkmark character */
+    color: white; /* Color of the checkmark character */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 18px;
+  }
+
+
+  /* Reset default browser styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* Center content */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.form-container {
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #fff;
+}
+
+/* Adjust form elements */
+.form-container input,
+.form-container textarea,
+.form-container select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.form-container button {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #eb580a;
+  color: #fff;
+  cursor: pointer;
+}
+
+.form-container button:hover {
+  background-color: #ff9f4b;
+}
