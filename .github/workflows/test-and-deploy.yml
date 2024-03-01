@@ -37,4 +37,40 @@ jobs:
     - run: npm run build --if-present
     - run: npx jest --silent
   
+  semantic-versioning:
+    needs: build-and-unit-tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 
+
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.26.0
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch 
+          WITH_V: true
+          PRERELEASE: true
+      
+      - name: Set up Docker Image Env
+        run: |
+          echo "CI_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/frontend-ci:${{ steps.tag_version.outputs.new_tag }}" >> $GITHUB_ENV
+          echo "PROD_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/frontend-prod:${{ steps.tag_version.outputs.new_tag }}" >> $GITHUB_ENV
+
+      - name: Set fallback tag if necessary
+        if: steps.tag_version.outputs.new_tag == ''
+        run: |
+          echo "Fallback tag is being used because no new tag was generated."
+          echo "CI_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/frontend-ci:latest" >> $GITHUB_ENV
+          echo "PROD_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/frontend-prod:latest" >> $GITHUB_ENV
+
+      - name: Recording image names
+        run: |
+          echo "CI_POSTSERVER_IMAGE=${CI_POSTSERVER_IMAGE}"
+          echo "PROD_POSTSERVER_IMAGE=${PROD_POSTSERVER_IMAGE}"
+
   
