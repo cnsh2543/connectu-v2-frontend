@@ -7,6 +7,7 @@ import { AuthContext } from "../utils/authContext";
 const Login = () => {
   const navigate = useNavigate();
   const { username, setUsername } = useContext(AuthContext);
+  const { setUni } = useContext(AuthContext);
   const [password, setPassword] = useState(null);
   const [alert, setAlert] = useState(false);
 
@@ -14,7 +15,8 @@ const Login = () => {
     e.preventDefault();
     const result = await login({ username, password });
     if (result.status === 200) {
-      Cookies.set("tokenConnect", result.data, { expires: 1 });
+      Cookies.set("tokenConnect", result.data.token, { expires: 1 });
+      setUni(result.data.uni);
       navigate("/newsfeed");
     } else if (result.status === 401) {
       setAlert(true);
