@@ -136,7 +136,7 @@ function SignupForm() {
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length === 0) {
       try {
-        const response = await api.post("/api/signup", user);
+        const response = await api.post("/credentials/signup", user);
         Cookies.set("tokenConnect", response.data, { expires: 1 });
         navigate("/newsfeed");
       } catch (error) {

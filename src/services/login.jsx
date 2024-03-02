@@ -3,7 +3,7 @@ import { getToken } from "../utils/helper";
 
 const login = async (object) => {
   try {
-    const response = await api.post("/api/login", object);
+    const response = await api.post("/credentials/login", object);
     return { status: response.status, data: response.data };
   } catch (error) {
     if (error.response && error.response.status === 401) {
@@ -15,7 +15,7 @@ const login = async (object) => {
 
 const authen = async (object) => {
   try {
-    const response = await api.get("/api/login/authenticate", {
+    const response = await api.get("/credentials/login/authenticate", {
       headers: {
         Authorization: `Bearer ${getToken(document.cookie)}`,
       },
