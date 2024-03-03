@@ -1,7 +1,7 @@
 import './App.css';
 import React from "react";
 import Login from './components/login.jsx';
-import {BrowserRouter as Router,Routes,Route,} from 'react-router-dom'
+import {BrowserRouter as Router,Routes,Route,Navigate} from 'react-router-dom'
 import { ProvideAuth } from './utils/authContext.js';
 import PrivateRoute from './components/privateRoute.jsx'
 import SignupForm from './components/signup.jsx';
@@ -16,6 +16,7 @@ const App = () => {
       <ProvideAuth>
         <Router>
           <Routes>
+            <Route path="/" element={<Navigate to="/newsfeed" replace />} />
             <Route path="/login" element={<Login/>}/>
             <Route path="/signup" element={<SignupForm />}/>
             <Route exact path='/newsfeed' element={<PrivateRoute/>}>
