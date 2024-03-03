@@ -11,17 +11,17 @@ jest.mock("../services/api");
 describe("<SignUpForm>", () => {
   it("should render skelenton of page", async () => {
     api.get.mockImplementation((url) => {
-      if (url === "/credentials/degreelevels") {
+      if (url === "/credentials/signup/degreelevels") {
         return Promise.resolve({
           data: {
             degreeLevels: [{ degreelevelid: 1, degreelevelname: "Bachelor" }],
           },
         });
-      } else if (url === "/credentials/degrees") {
+      } else if (url === "/credentials/signup/degrees") {
         return Promise.resolve({
           data: { degrees: [{ degreeid: 1, degreename: "ABC" }] },
         });
-      } else if (url === "/credentials/interests") {
+      } else if (url === "/credentials/signup/interests") {
         return Promise.resolve({
           data: {
             interests: [
@@ -67,17 +67,17 @@ describe("<SignUpForm>", () => {
 
   it("should render content obtained from backend calls", async () => {
     api.get.mockImplementation((url) => {
-      if (url === "/credentials/degreelevels") {
+      if (url === "/credentials/signup/degreelevels") {
         return Promise.resolve({
           data: {
             degreeLevels: [{ degreelevelid: 1, degreelevelname: "Bachelor" }],
           },
         });
-      } else if (url === "/credentials/degrees") {
+      } else if (url === "/credentials/signup/degrees") {
         return Promise.resolve({
           data: { degrees: [{ degreeid: 1, degreename: "ABC" }] },
         });
-      } else if (url === "/credentials/interests") {
+      } else if (url === "/credentials/signup/interests") {
         return Promise.resolve({
           data: {
             interests: [

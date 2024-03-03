@@ -47,7 +47,7 @@ function SignupForm() {
     // Fetch degrees
     const fetchDegrees = async () => {
       try {
-        const response = await api.get("/credentials/degrees");
+        const response = await api.get("/credentials/signup/degrees");
         setDegrees(response.data.degrees);
       } catch (error) {
         console.error("Error fetching degrees:", error);
@@ -57,7 +57,7 @@ function SignupForm() {
     // Fetch degree levels
     const fetchDegreeLevels = async () => {
       try {
-        const response = await api.get("/credentials/degreelevels");
+        const response = await api.get("/credentials/signup/degreelevels");
         setDegreeLevels(response.data.degreeLevels);
       } catch (error) {
         console.error("Error fetching degree levels:", error);
@@ -67,7 +67,7 @@ function SignupForm() {
     // Fetch interests
     const fetchInterests = async () => {
       try {
-        const response = await api.get("/credentials/interests");
+        const response = await api.get("/credentials/signup/interests");
         setInterests(response.data.interests);
       } catch (error) {
         console.error("Error fetching interests:", error);
@@ -136,7 +136,7 @@ function SignupForm() {
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length === 0) {
       try {
-        const response = await api.post("/credentials/signup", user);
+        const response = await api.post("/credentials/signup/signup", user);
         Cookies.set("tokenConnect", response.data, { expires: 1 });
         navigate("/newsfeed");
       } catch (error) {
