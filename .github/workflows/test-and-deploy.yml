@@ -101,7 +101,7 @@ jobs:
     needs: build-and-push-ci
     env:
       CLUSTER_NAME: connectu-webservers # Replace with your actual cluster name
-      SERVICE_NAME: webfrontend # Replace with your actual service name
+      SERVICE_NAME: dynamic-webservers # Replace with your actual service name
       AWS_REGION: eu-west-2 # London
 
     steps:
