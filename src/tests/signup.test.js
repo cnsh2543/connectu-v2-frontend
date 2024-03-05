@@ -62,7 +62,7 @@ describe("<SignUpForm>", () => {
 
     await expect(screen.getByText("Username:")).toBeInTheDocument();
     await expect(screen.getByText("Password:")).toBeInTheDocument();
-    await expect(screen.getByText("Email:")).toBeInTheDocument();
+    await expect(screen.getByText("School Email:")).toBeInTheDocument();
   });
 
   it("should render content obtained from backend calls", async () => {
