@@ -135,12 +135,15 @@ function SignupForm() {
     event.preventDefault();
     const validationErrors = validate(user);
     setErrors(validationErrors);
+    setLoading(true);
     if (Object.keys(validationErrors).length === 0) {
       try {
         const response = await api.post("/credentials/signup/signup", user);
+        setLoading(false);
         Cookies.set("tokenConnect", response.data, { expires: 1 });
         navigate("/newsfeed");
       } catch (error) {
+        setLoading(false);
         console.log(error.response);
         if (error.response && error.response.data.errors) {
           // Directly set the errors object from the backend to the state
