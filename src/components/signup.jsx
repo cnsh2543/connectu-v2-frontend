@@ -132,10 +132,10 @@ function SignupForm() {
 
   // Setup submission
   const handleSubmit = async (event) => {
+    setLoading(true);
     event.preventDefault();
     const validationErrors = validate(user);
     setErrors(validationErrors);
-    setLoading(true);
     if (Object.keys(validationErrors).length === 0) {
       try {
         const response = await api.post("/credentials/signup/signup", user);
@@ -153,7 +153,10 @@ function SignupForm() {
           console.error("There was an error signing up:", error);
         }
       }
+    } else {
+      setLoading(false);
     }
+
   };
 
   // Render form
