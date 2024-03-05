@@ -238,7 +238,7 @@ function Personal() {
               }
             })
             .includes(post.interest)) &&
-        post.userid.toLowerCase() === username
+        post.userid === username
     );
     sortList.forEach((item) => {
       if (item.isSelected === true && item.field === "Most Liked") {
