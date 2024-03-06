@@ -38,7 +38,7 @@ const Login = () => {
       <div className="flex flex-col items-center justify-center bg-slate-50 h-full w-full">
         {alert ? (
           <div
-            class="transition-opacity duration-500 ease-in-out opacity-100 bg-red-100 border-t-4 border-red-500 rounded-lg text-red-900 px-4 py-3 shadow-md mb-1.5 w-[25%] h-[8%]"
+            class="transition-opacity duration-500 ease-in-out opacity-100 bg-red-100 border-t-4 border-red-500 rounded-lg text-red-900 px-4 py-3 shadow-md mb-1.5 w-[40%] h-[8%]"
             role="alert"
           >
             <div class="flex">

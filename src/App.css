@@ -897,6 +897,14 @@ video {
   width: 8rem !important;
 }
 
+.w-\[35\%\] {
+  width: 35% !important;
+}
+
+.w-\[40\%\] {
+  width: 40% !important;
+}
+
 .min-w-\[90\%\] {
   min-width: 90% !important;
 }
