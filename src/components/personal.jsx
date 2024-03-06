@@ -18,7 +18,7 @@ function Personal() {
 
   const { username } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [liked, setLiked] = useState([]);
   const [totalMetrics, setTotalMetrics] = useState({});
@@ -227,6 +227,7 @@ function Personal() {
         (post.header?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           post.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           post.interest?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        post.userid.toLowerCase() === username.toLowerCase() &&
         (interests.reduce(
           (count, item) => count + (item.isSelected ? 1 : 0),
           0
@@ -237,8 +238,7 @@ function Personal() {
                 return item.field;
               }
             })
-            .includes(post.interest)) &&
-        post.userid === username
+            .includes(post.interest))
     );
     sortList.forEach((item) => {
       if (item.isSelected === true && item.field === "Most Liked") {
@@ -325,33 +325,35 @@ function Personal() {
   };
 
   const fetchPosts = async () => {
-    try {
-      const response = await api.get("/api/enhanced-xposts", {
-        params: {
-          num: 10,
-          page: currentPage, // Updated to send current page
-          sortField: "last_update_timestamp",
-          sortOrder: "asc",
-        },
-      });
+    if (currentPage >= 1) {
+      try {
+        const response = await api.get("/api/enhanced-xposts", {
+          params: {
+            num: 10,
+            page: currentPage, // Updated to send current page
+            sortField: "last_update_timestamp",
+            sortOrder: "asc",
+          },
+        });
 
-      if (currentPage === 1) {
-        setPosts(response.data.posts); // Directly set posts if it's the first page
-      } else {
-        setPosts((prevPosts) => [
-          ...new Set([...prevPosts, ...response.data.posts]),
-        ]); // Combine new posts, avoiding duplicates
+        if (currentPage === 1) {
+          setPosts(response.data.posts); // Directly set posts if it's the first page
+        } else {
+          setPosts((prevPosts) =>
+            Array.from(new Set([...prevPosts, ...response.data.posts]))
+          ); // Combine new posts, avoiding duplicates
+        }
+        console.log(posts);
+        setObsCounter((prevCount) => prevCount + 1);
+        setHasMore(response.data.posts.length > 0);
+        // const fetchedInterests = new Set(response.data.posts.flatMap(post => post.interest));
+        // setInterests(prevInterests => [...new Set([...prevInterests, ...fetchedInterests])].map(
+        //   interest => ({ field: interest, isSelected: false })));
+        // setInterests(Array.from(fetchedInterests).map(
+        //    interest => ({ field: interest, isSelected: false })));
+      } catch (error) {
+        console.error("Error fetching posts:", error);
       }
-      setObsCounter((prevCount) => prevCount + 1);
-      console.log(posts);
-      setHasMore(response.data.posts.length > 0);
-      // const fetchedInterests = new Set(response.data.posts.flatMap(post => post.interest));
-      // setInterests(prevInterests => [...new Set([...prevInterests, ...fetchedInterests])].map(
-      //   interest => ({ field: interest, isSelected: false })));
-      // setInterests(Array.from(fetchedInterests).map(
-      //    interest => ({ field: interest, isSelected: false })));
-    } catch (error) {
-      console.error("Error fetching posts:", error);
     }
   };
   useEffect(() => {
@@ -365,6 +367,8 @@ function Personal() {
 
   useEffect(() => {
     fetchPosts();
+
+    console.log(posts);
   }, [currentPage]); // Rely on currentPage to fetch posts
 
   useEffect(() => {
