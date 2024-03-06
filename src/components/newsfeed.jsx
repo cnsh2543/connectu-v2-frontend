@@ -73,7 +73,7 @@ function Newsfeed() {
     const emptyFields = requiredFields.filter((field) => !formData[field]);
 
     if (emptyFields.length > 0) {
-      alert(`Please fill in all required fields: ${emptyFields.join(", ")}`);
+      alert(`Please fill in all required fields!`);
       return;
     }
 
