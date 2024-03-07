@@ -191,6 +191,7 @@ jobs:
     needs: [semantic-versioning, security-DAST-Staging-URL, performance-test, prepare-release, security-SAST-Container-CI]
     runs-on: ubuntu-latest
     environment:
+      name: production
       url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
       - name: Checkout main
@@ -225,6 +226,8 @@ jobs:
   push-to-aws-dev:
     needs: build-and-test-production
     runs-on: ubuntu-latest
+    environment:
+      name: dev_aws
     env:
       CLUSTER_NAME: connectu-webservers # Replace with your actual cluster name
       SERVICE_NAME: dynamic-webservers # Replace with your actual service name
