@@ -11,34 +11,62 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js '20.x'
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-    - name: Install Dependencies
-      run: npm ci
-    - name: Lint and Automatically Fix
-      run: npm run lint:fix
-        
+      - uses: actions/checkout@v3
+      - name: Use Node.js '20.x'
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      - name: Install Dependencies
+        run: npm ci
+      - name: Lint and Automatically Fix
+        run: npm run lint:fix
 
-  build-and-unit-tests:
+  unit-and-integration-tests:
     needs: lint
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js '20.x'
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npx jest --silent
-  
+      - uses: actions/checkout@v3
+      - name: Use Node.js '20.x'
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm test -- --forceExit --detectOpenHandles
+
+  security-SAST-code:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run sast-scan for SAST
+        uses: AppThreat/sast-scan-action@master
+        with:
+          type: "nodejs"
+
+      - name: Upload sast-scan reports to artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: sast-scan-reports
+          path: reports/
+
+  codeQL-analysis:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'javascript'
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
   semantic-versioning:
-    needs: build-and-unit-tests
+    needs: [security-SAST-code, codeQL-analysis, unit-and-integration-tests]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -46,59 +74,158 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 
+          fetch-depth: '0'
 
       - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@1.26.0
-        with:
+        id: tag_version
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: patch 
+          DEFAULT_BUMP: patch
           WITH_V: true
           PRERELEASE: true
-      
+
       - name: Set up Docker Image Env
         run: |
-          echo "CI_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/frontend-ci:${{ steps.tag_version.outputs.new_tag }}" >> $GITHUB_ENV
-          echo "PROD_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/frontend-prod:${{ steps.tag_version.outputs.new_tag }}" >> $GITHUB_ENV
+          echo "CI_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/postserver-ci:${{ steps.tag_version.outputs.new_tag }}" >> $GITHUB_ENV
+          echo "PROD_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/postserver-prod:${{ steps.tag_version.outputs.new_tag }}" >> $GITHUB_ENV
 
       - name: Set fallback tag if necessary
         if: steps.tag_version.outputs.new_tag == ''
         run: |
           echo "Fallback tag is being used because no new tag was generated."
-          echo "CI_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/frontend-ci:latest" >> $GITHUB_ENV
-          echo "PROD_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/frontend-prod:latest" >> $GITHUB_ENV
+          echo "CI_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/postserver-ci:latest" >> $GITHUB_ENV   
+          echo "PROD_POSTSERVER_IMAGE=${{ secrets.GHCR_PREFIX }}/postserver-prod:latest" >> $GITHUB_ENV
+      #configure ${{ secrets.GHCR_PREFIX }} on github secrets with your prefix i.e. ghcr.io/<github name>
 
       - name: Recording image names
         run: |
           echo "CI_POSTSERVER_IMAGE=${CI_POSTSERVER_IMAGE}"
           echo "PROD_POSTSERVER_IMAGE=${PROD_POSTSERVER_IMAGE}"
+    outputs:
+      new_tag: ${{ steps.tag_version.outputs.new_tag }}
 
   build-and-push-ci:
     needs: semantic-versioning
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout main
         uses: actions/checkout@v3
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v1
-        with: 
+        with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push CI images
         run: |
-          docker build -f ./Dockerfile -t ghcr.io/cnsh2543/frontend-ci:latest .
-          docker push ghcr.io/cnsh2543/frontend-ci:latest
-  
-  deploy:
-    name: Force Deploy
-    runs-on: ubuntu-latest
+          docker build -f ./Dockerfile -t "${{ secrets.GHCR_PREFIX }}/postserver-ci:latest" .
+          docker push "${{ secrets.GHCR_PREFIX }}/postserver-ci:latest"
+
+      - name: Security Scan for CI
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy image --severity HIGH,CRITICAL "${{ secrets.GHCR_PREFIX }}/postserver-ci:latest"
+
+  security-SAST-Container-CI:
     needs: build-and-push-ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Anchore Engine Scan
+        uses: anchore/scan-action@v3
+        continue-on-error: true
+        with:
+          image: "${{ secrets.GHCR_PREFIX }}/postserver-ci:latest"
+          fail-build: true
+          output-format: 'table'
+          severity-cutoff: 'medium'
+
+  security-DAST-Staging-URL:
+    needs: build-and-push-ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        if: false
+        uses: actions/checkout@v2
+
+      - name: OWASP ZAP Scan
+        if: false
+        uses: zaproxy/action-baseline@v0.4.0
+        with:
+          target: "xxxxx"
+
+  performance-test:
+    needs: build-and-push-ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Lighthouse
+        if: false
+        uses: treosh/lighthouse-ci-action@v8
+        with:
+          urls: 'xxxxx'
+
+  prepare-release:
+    needs: build-and-push-ci
+    runs-on: ubuntu-latest
+    outputs:
+      commit-message: ${{ steps.commit-message.outputs.message }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Get the last commit message
+        id: commit-message
+        run: echo "::set-output name=message::$(git log -1 --pretty=%B)"
+
+  build-and-test-production:
+    needs: [semantic-versioning, security-DAST-Staging-URL, performance-test, prepare-release, security-SAST-Container-CI]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v3
+      - name: Dependency Check
+        run: npm audit --production --audit-level=high
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build production images
+        run: |
+          docker build -f ./Dockerfile -t "${{ secrets.GHCR_PREFIX }}/postserver-prod:latest" .
+      - name: Security Scan Production
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy image --severity HIGH,CRITICAL "${{ secrets.GHCR_PREFIX }}/postserver-prod:latest"
+      - name: Push production images
+        run: |
+          docker push "${{ secrets.GHCR_PREFIX }}/postserver-prod:latest"
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.semantic-versioning.outputs.new_tag }}
+          release_name: Release ${{ needs.semantic-versioning.outputs.new_tag }}
+          body: ${{ needs.prepare-release.outputs.commit-message }}
+
+  push-to-aws-dev:
+    needs: build-and-test-production
+    runs-on: ubuntu-latest
+    environment:
+      name: production_aws
     env:
       CLUSTER_NAME: connectu-webservers # Replace with your actual cluster name
       SERVICE_NAME: dynamic-webservers # Replace with your actual service name
@@ -119,6 +246,27 @@ jobs:
         run: |
           aws ecs update-service --cluster ${{ env.CLUSTER_NAME }} --service ${{ env.SERVICE_NAME }} --force-new-deployment
 
-      # ${{ env.CI_POSTSERVER_IMAGE }}      ghcr.io/tehminghwang/postserver-ci:latest
+  push-to-aws-production:
+    needs: push-to-aws-dev
+    runs-on: ubuntu-latest
+    environment:
+      name: dev_aws
+    env:
+      CLUSTER_NAME: connectu-webservers # Replace with your actual cluster name
+      SERVICE_NAME: dynamic-webservers # Replace with your actual service name
+      AWS_REGION: eu-west-2 # London
 
-  
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Force new deployment on ECS
+        run: |
+          aws ecs update-service --cluster ${{ env.CLUSTER_NAME }} --service ${{ env.SERVICE_NAME }} --force-new-deployment
